@@ -1,0 +1,20 @@
+spring:
+  profiles: dev
+server:
+  port: 8083
+logging:
+  level:
+    root: DEBUG
+
+adapters:
+  r2dbc:
+    host: "localhost"
+    port: 5432
+    database: "request_db"
+    schema: "public"
+    username: "postgres"
+    password: "root"
+
+ms-authentication:
+  base-url: "http://localhost:8080"
+

@@ -1,0 +1,8 @@
+spring:
+  profiles: test
+server:
+  port: 8085
+logging:
+  level:
+    root: DEBUG
+

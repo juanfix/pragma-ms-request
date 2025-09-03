@@ -1,0 +1,36 @@
+---
+server:
+  port: 8080
+
+spring:
+  application:
+    name: requests
+  webflux:
+    base-path: /
+  devtools:
+    livereload:
+      enabled: false
+  profiles:
+    active: local
+  sql:
+    init:
+      mode: always
+      platform: postgresql
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+
+logging:
+  level:
+    co.com.pragma: DEBUG
+    org.springframework.web: DEBUG
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+routes:
+  paths:
+    global: "/api/v1"
