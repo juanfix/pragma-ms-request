@@ -1,14 +1,15 @@
 package co.com.pragma.webclient.helpers;
 
+import co.com.pragma.webclient.dto.RoleRequestDTO;
 import org.springframework.stereotype.Component;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
+import java.util.List;
 
 @Component
 public class JwtProvider {
@@ -23,10 +24,11 @@ public class JwtProvider {
     public Mono<String> generateToken() {
         return Mono.fromSupplier(() ->
                 Jwts.builder()
-                        .setIssuer("ms-request")
-                        .setIssuedAt(new Date())
-                        .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
-                        .signWith(key, SignatureAlgorithm.HS256)
+                        .subject("ms-request")
+                        .claim("roles", List.of("ADMIN"))
+                        .issuedAt(new Date())
+                        .expiration(new Date(System.currentTimeMillis() + expirationTime))
+                        .signWith(key)
                         .compact()
         );
     }
