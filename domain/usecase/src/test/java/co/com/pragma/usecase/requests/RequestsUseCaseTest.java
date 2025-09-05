@@ -6,6 +6,7 @@ import co.com.pragma.model.requests.Requests;
 import co.com.pragma.model.requests.gateways.RequestsRepository;
 import co.com.pragma.model.status.Status;
 import co.com.pragma.model.status.gateways.StatusRepository;
+import co.com.pragma.usecase.requests.validations.error.RequestsValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -141,7 +142,7 @@ class RequestsUseCaseTest {
                 .thenReturn(Mono.just(true));
 
         StepVerifier.create(requestsUseCase.saveRequests(requests))
-                .expectErrorMatches(throwable -> throwable instanceof IllegalArgumentException &&
+                .expectErrorMatches(throwable -> throwable instanceof RequestsValidationException &&
                         throwable.getMessage().equals("The loan type Id does not exists."))
                 .verify();
 

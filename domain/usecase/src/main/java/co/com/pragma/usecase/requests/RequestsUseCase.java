@@ -9,6 +9,7 @@ import co.com.pragma.usecase.requests.validations.cases.AmountAndTermValidation;
 import co.com.pragma.usecase.requests.validations.cases.EmailValidation;
 import co.com.pragma.usecase.requests.validations.cases.RequestsDataValidation;
 import co.com.pragma.usecase.requests.validations.cases.UserExistValidation;
+import co.com.pragma.usecase.requests.validations.error.RequestsValidationException;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -31,7 +32,7 @@ public class RequestsUseCase implements RequestsUseCaseInterface {
 
         return requestsValidation.validate(requests)
                 .then(loanTypeRepository.findLoanTypeById(requests.getLoanTypeId())
-                        .switchIfEmpty(Mono.error(new IllegalArgumentException("The loan type Id does not exists.")))
+                        .switchIfEmpty(Mono.error(new RequestsValidationException("The loan type Id does not exists.")))
                         .flatMap(loanType -> {
                             requests.setLoanTypeId(loanType.getId());
                             return statusRepository.findStatusById(4L) // Se busca si existe el status en la tabla correspondiente

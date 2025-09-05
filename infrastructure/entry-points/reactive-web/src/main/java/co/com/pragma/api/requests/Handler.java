@@ -4,6 +4,7 @@ import co.com.pragma.api.requests.dto.*;
 import co.com.pragma.jjwtsecurity.jwt.provider.JwtProvider;
 import co.com.pragma.model.requests.Requests;
 import co.com.pragma.usecase.requests.RequestsUseCase;
+import co.com.pragma.usecase.requests.validations.error.RequestsValidationException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -106,7 +107,7 @@ public class Handler {
                     log.error("❌ Ocurrió un error en el proceso: {}", ex.getMessage());
                 })
                 .doOnNext(savedRequest -> log.info("✅ solicitud almacenada en la base de datos: {}", savedRequest))
-                .onErrorResume(IllegalArgumentException.class, e -> {
+                .onErrorResume(RequestsValidationException.class, e -> {
                     log.warn("Error al validar los datos de la solicitud: {}", e.getMessage());
                     return errorResponse(400, "Bad request",e.getMessage(), HttpStatus.BAD_REQUEST);
                 })
