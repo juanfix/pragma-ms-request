@@ -21,7 +21,10 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
 
     private final TransactionalOperator transactionalOperator;
 
-    public RequestsReactiveRepositoryAdapter(RequestsReactiveRepository repository, ObjectMapper mapper, TransactionalOperator transactionalOperator) {
+    public RequestsReactiveRepositoryAdapter(RequestsReactiveRepository repository,
+                                             ObjectMapper mapper,
+                                             TransactionalOperator transactionalOperator
+    ) {
         /**
          *  Could be use mapper.mapBuilder if your domain model implement builder pattern
          *  super(repository, mapper, d -> mapper.mapBuilder(d,ObjectModel.ObjectModelBuilder.class).build());

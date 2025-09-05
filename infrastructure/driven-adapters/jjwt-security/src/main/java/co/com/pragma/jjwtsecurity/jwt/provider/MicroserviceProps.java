@@ -1,4 +1,4 @@
-package co.com.pragma.webclient.helpers;
+package co.com.pragma.jjwtsecurity.jwt.provider;
 
 
 import lombok.Getter;
