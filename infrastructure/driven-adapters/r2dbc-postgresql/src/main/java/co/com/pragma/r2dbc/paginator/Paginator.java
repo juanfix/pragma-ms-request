@@ -4,7 +4,6 @@ import co.com.pragma.model.requests.dto.PageCriteria;
 import co.com.pragma.model.requests.dto.PagedSummary;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
-import org.springframework.data.relational.core.mapping.Table;
 import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.data.relational.core.query.Query;
 import org.springframework.stereotype.Component;

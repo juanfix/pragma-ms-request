@@ -1,10 +1,14 @@
 package co.com.pragma.r2dbc;
 
+import co.com.pragma.model.loantype.LoanType;
+import co.com.pragma.model.loantype.gateways.LoanTypeRepository;
 import co.com.pragma.model.requests.Requests;
 import co.com.pragma.model.requests.dto.PageCriteria;
 import co.com.pragma.model.requests.dto.PagedSummary;
 import co.com.pragma.model.requests.dto.RequestsFilter;
 import co.com.pragma.model.requests.gateways.RequestsRepository;
+import co.com.pragma.model.status.Status;
+import co.com.pragma.model.status.gateways.StatusRepository;
 import co.com.pragma.r2dbc.entity.RequestsEntity;
 import co.com.pragma.r2dbc.helper.ReactiveAdapterOperations;
 import co.com.pragma.r2dbc.paginator.Paginator;
@@ -31,11 +35,16 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
     private static final Logger log = LoggerFactory.getLogger(RequestsReactiveRepositoryAdapter.class);
     private final TransactionalOperator transactionalOperator;
     private final Paginator paginator;
+    private final StatusReactiveRepositoryAdapter statusReactiveRepositoryAdapter;
+    private final LoanTypeReactiveRepositoryAdapter loanTypeReactiveRepositoryAdapter;
 
     public RequestsReactiveRepositoryAdapter(RequestsReactiveRepository repository,
                                              ObjectMapper mapper,
                                              TransactionalOperator transactionalOperator,
-                                             Paginator paginator
+                                             Paginator paginator,
+                                             StatusReactiveRepositoryAdapter statusReactiveRepositoryAdapter,
+                                             LoanTypeReactiveRepositoryAdapter loanTypeReactiveRepositoryAdapter
+
     ) {
         /**
          *  Could be use mapper.mapBuilder if your domain model implement builder pattern
@@ -45,6 +54,8 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
         super(repository, mapper, d -> mapper.map(d, Requests.class));
         this.transactionalOperator = transactionalOperator;
         this.paginator = paginator;
+        this.statusReactiveRepositoryAdapter = statusReactiveRepositoryAdapter;
+        this.loanTypeReactiveRepositoryAdapter = loanTypeReactiveRepositoryAdapter;
     }
 
     @Override
@@ -91,18 +102,46 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
         }
 
         return paginator.paginate(criteria, RequestsEntity.class, page)
-                .map(pageSummaryEntity -> {
-                    List<Requests> content = pageSummaryEntity.request()
-                            .stream()
-                            .map(this::toEntity)
-                            .toList();
-                    return new PagedSummary<>(
-                            content,
-                            pageSummaryEntity.page(),
-                            pageSummaryEntity.size(),
-                            pageSummaryEntity.total()
-                    );
-                });
+                .flatMap(pageSummaryEntity ->
+                        Flux.fromIterable(pageSummaryEntity.request())
+                                .flatMap(reqEntity ->
+                                        Mono.zip(
+                                                statusReactiveRepositoryAdapter.findById(reqEntity.getStatusId()),
+                                                loanTypeReactiveRepositoryAdapter.findById(reqEntity.getLoanTypeId())
+                                        ).map(tuple -> {
+                                            Status status = tuple.getT1();
+                                            LoanType loanType = tuple.getT2();
+
+                                            // convertir entity → domain y enriquecer
+                                            Requests req = this.toEntity(reqEntity);
+                                            req.setStatusName(status.getName());
+                                            req.setLoanTypeName(loanType.getName());
+
+                                            return req;
+                                        })
+                                )
+                                .collectList()
+                                .map(content -> new PagedSummary<>(
+                                        content,
+                                        pageSummaryEntity.page(),
+                                        pageSummaryEntity.size(),
+                                        pageSummaryEntity.total()
+                                ))
+                );
+
+//        return paginator.paginate(criteria, RequestsEntity.class, page)
+//                .map(pageSummaryEntity -> {
+//                    List<Requests> content = pageSummaryEntity.request()
+//                            .stream()
+//                            .map(this::toEntity)
+//                            .toList();
+//                    return new PagedSummary<>(
+//                            content,
+//                            pageSummaryEntity.page(),
+//                            pageSummaryEntity.size(),
+//                            pageSummaryEntity.total()
+//                    );
+//                });
     }
 
     @Override

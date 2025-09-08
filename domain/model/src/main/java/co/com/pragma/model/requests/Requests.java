@@ -17,6 +17,8 @@ public class Requests {
     private String email;
     private String identityNumber;
     private Long statusId;
+    private String statusName;
     private Long loanTypeId;
+    private String loanTypeName;
 
 }
