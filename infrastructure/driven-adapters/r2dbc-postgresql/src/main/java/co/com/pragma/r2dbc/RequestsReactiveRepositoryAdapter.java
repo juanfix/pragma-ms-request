@@ -1,15 +1,24 @@
 package co.com.pragma.r2dbc;
 
 import co.com.pragma.model.requests.Requests;
+import co.com.pragma.model.requests.dto.PageCriteria;
+import co.com.pragma.model.requests.dto.PagedSummary;
+import co.com.pragma.model.requests.dto.RequestsFilter;
 import co.com.pragma.model.requests.gateways.RequestsRepository;
 import co.com.pragma.r2dbc.entity.RequestsEntity;
 import co.com.pragma.r2dbc.helper.ReactiveAdapterOperations;
+import co.com.pragma.r2dbc.paginator.Paginator;
 import org.reactivecommons.utils.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @Repository
 public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations<
@@ -19,11 +28,14 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
     RequestsReactiveRepository
 > implements RequestsRepository {
 
+    private static final Logger log = LoggerFactory.getLogger(RequestsReactiveRepositoryAdapter.class);
     private final TransactionalOperator transactionalOperator;
+    private final Paginator paginator;
 
     public RequestsReactiveRepositoryAdapter(RequestsReactiveRepository repository,
                                              ObjectMapper mapper,
-                                             TransactionalOperator transactionalOperator
+                                             TransactionalOperator transactionalOperator,
+                                             Paginator paginator
     ) {
         /**
          *  Could be use mapper.mapBuilder if your domain model implement builder pattern
@@ -32,6 +44,7 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
          */
         super(repository, mapper, d -> mapper.map(d, Requests.class));
         this.transactionalOperator = transactionalOperator;
+        this.paginator = paginator;
     }
 
     @Override
@@ -64,5 +77,41 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
 
         return transactionalOperator.execute(status -> findByExample(requests)
                 .switchIfEmpty(Mono.empty())).next();
+    }
+
+    @Override
+    public Mono<PagedSummary<Requests>> findAllByFilters(RequestsFilter filter, PageCriteria page) {
+        Criteria criteria = Criteria.empty();
+        if (filter.statusId() != null) {
+            criteria = criteria.and("status_id").is(filter.statusId());
+        }
+
+        if (filter.loanTypeId() != null) {
+            criteria = criteria.and("loan_type_id").is(filter.loanTypeId());
+        }
+
+        return paginator.paginate(criteria, RequestsEntity.class, page)
+                .map(pageSummaryEntity -> {
+                    List<Requests> content = pageSummaryEntity.request()
+                            .stream()
+                            .map(this::toEntity)
+                            .toList();
+                    return new PagedSummary<>(
+                            content,
+                            pageSummaryEntity.page(),
+                            pageSummaryEntity.size(),
+                            pageSummaryEntity.total()
+                    );
+                });
+    }
+
+    @Override
+    public Mono<Long> countByFilters(RequestsFilter filter) {
+        return Mono.just(1L);
+    }
+
+    @Override
+    public Mono<Double> sumAmountByFilters(RequestsFilter filter) {
+        return Mono.just(0.0);
     }
 }

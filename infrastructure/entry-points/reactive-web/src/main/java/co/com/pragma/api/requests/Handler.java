@@ -3,6 +3,8 @@ package co.com.pragma.api.requests;
 import co.com.pragma.api.requests.dto.*;
 import co.com.pragma.jjwtsecurity.jwt.provider.JwtProvider;
 import co.com.pragma.model.requests.Requests;
+import co.com.pragma.model.requests.dto.PageCriteria;
+import co.com.pragma.model.requests.dto.RequestsFilter;
 import co.com.pragma.usecase.requests.RequestsUseCase;
 import co.com.pragma.usecase.requests.validations.error.RequestsValidationException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -123,6 +125,29 @@ public class Handler {
                 //.contentType(MediaType.APPLICATION_NDJSON)
                 .contentType(MediaType.TEXT_EVENT_STREAM)
                 .body(requestsUseCase.findAllRequests(), Requests.class);
+    }
+
+    public Mono<ServerResponse> listenGetAllRequestsByFilter(ServerRequest serverRequest) {
+        Long statusId = serverRequest.queryParam("statusId")
+                .map(Long::valueOf)
+                .orElse(null);
+        Long loanTypeId = serverRequest.queryParam("loanTypeId")
+                .map(Long::valueOf)
+                .orElse(null);
+
+        RequestsFilter requestsFilter = new RequestsFilter(statusId, loanTypeId);
+
+        Integer page = Integer.parseInt(serverRequest.queryParam("page").orElse("0"));
+        Integer size = Integer.parseInt(serverRequest.queryParam("size").orElse("10"));
+        PageCriteria pageCriteria = new PageCriteria(page, size);
+
+        // TODO: manejar excepcion cuando PageCriteria llegue null
+
+        return requestsUseCase.findAllRequestsWithSummary(requestsFilter, pageCriteria)
+                .flatMap(response -> ServerResponse.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(response)
+                );
     }
 
     public Mono<ServerResponse> listenGetRequestByIdentityNumber(ServerRequest serverRequest) {

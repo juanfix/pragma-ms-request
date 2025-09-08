@@ -1,8 +1,13 @@
 package co.com.pragma.usecase.requests;
 
+import co.com.pragma.model.loantype.LoanType;
 import co.com.pragma.model.loantype.gateways.LoanTypeRepository;
 import co.com.pragma.model.requests.Requests;
+import co.com.pragma.model.requests.dto.PageCriteria;
+import co.com.pragma.model.requests.dto.PagedSummary;
+import co.com.pragma.model.requests.dto.RequestsFilter;
 import co.com.pragma.model.requests.gateways.RequestsRepository;
+import co.com.pragma.model.status.Status;
 import co.com.pragma.model.status.gateways.StatusRepository;
 import co.com.pragma.usecase.requests.validations.RequestsValidation;
 import co.com.pragma.usecase.requests.validations.cases.AmountAndTermValidation;
@@ -55,6 +60,35 @@ public class RequestsUseCase implements RequestsUseCaseInterface {
     @Override
     public Flux<Requests> findAllRequests() {
         return requestsRepository.findAllRequests();
+    }
+
+    @Override
+    public Mono<PagedSummary<Requests>> findAllRequestsWithSummary(RequestsFilter filter, PageCriteria page) {
+        return requestsRepository.findAllByFilters(filter, page)
+                .flatMap(pageSummary ->
+                        Flux.fromIterable(pageSummary.request())
+                                .flatMap(requestDocument -> {
+                                    Mono<Status> status =
+                                            statusRepository.findStatusById(requestDocument.getStatusId());
+
+                                    Mono<LoanType> loanType =
+                                            loanTypeRepository.findLoanTypeById(requestDocument.getLoanTypeId());
+
+                                    return Mono.zip(status, loanType)
+                                            .map(tuple -> {
+                                                requestDocument.setStatusId(tuple.getT1().getId());
+                                                requestDocument.setLoanTypeId(tuple.getT2().getId());
+                                                return requestDocument;
+                                            });
+                                })
+                                .collectList()
+                                .map(requestsList -> new PagedSummary<>(
+                                        requestsList,
+                                        pageSummary.page(),
+                                        pageSummary.size(),
+                                        pageSummary.total()
+                                ))
+                );
     }
 
     @Override
