@@ -1,17 +1,17 @@
 package co.com.pragma.r2dbc;
 
 import co.com.pragma.model.loantype.LoanType;
-import co.com.pragma.model.loantype.gateways.LoanTypeRepository;
 import co.com.pragma.model.requests.Requests;
 import co.com.pragma.model.requests.dto.PageCriteria;
 import co.com.pragma.model.requests.dto.PagedSummary;
 import co.com.pragma.model.requests.dto.RequestsFilter;
 import co.com.pragma.model.requests.gateways.RequestsRepository;
 import co.com.pragma.model.status.Status;
-import co.com.pragma.model.status.gateways.StatusRepository;
 import co.com.pragma.r2dbc.entity.RequestsEntity;
 import co.com.pragma.r2dbc.helper.ReactiveAdapterOperations;
 import co.com.pragma.r2dbc.paginator.Paginator;
+import co.com.pragma.usecase.requests.dto.UserSalaryInformationDTO;
+import co.com.pragma.webclient.UserWebClientAdapter;
 import org.reactivecommons.utils.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,8 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.List;
 
 @Repository
 public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations<
@@ -35,13 +33,16 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
     private static final Logger log = LoggerFactory.getLogger(RequestsReactiveRepositoryAdapter.class);
     private final TransactionalOperator transactionalOperator;
     private final Paginator paginator;
+    private final UserWebClientAdapter userWebClientAdapter;
     private final StatusReactiveRepositoryAdapter statusReactiveRepositoryAdapter;
     private final LoanTypeReactiveRepositoryAdapter loanTypeReactiveRepositoryAdapter;
+
 
     public RequestsReactiveRepositoryAdapter(RequestsReactiveRepository repository,
                                              ObjectMapper mapper,
                                              TransactionalOperator transactionalOperator,
                                              Paginator paginator,
+                                             UserWebClientAdapter userWebClientAdapter,
                                              StatusReactiveRepositoryAdapter statusReactiveRepositoryAdapter,
                                              LoanTypeReactiveRepositoryAdapter loanTypeReactiveRepositoryAdapter
 
@@ -54,6 +55,7 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
         super(repository, mapper, d -> mapper.map(d, Requests.class));
         this.transactionalOperator = transactionalOperator;
         this.paginator = paginator;
+        this.userWebClientAdapter = userWebClientAdapter;
         this.statusReactiveRepositoryAdapter = statusReactiveRepositoryAdapter;
         this.loanTypeReactiveRepositoryAdapter = loanTypeReactiveRepositoryAdapter;
     }
@@ -107,15 +109,20 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
                                 .flatMap(reqEntity ->
                                         Mono.zip(
                                                 statusReactiveRepositoryAdapter.findById(reqEntity.getStatusId()),
-                                                loanTypeReactiveRepositoryAdapter.findById(reqEntity.getLoanTypeId())
+                                                loanTypeReactiveRepositoryAdapter.findById(reqEntity.getLoanTypeId()),
+                                                userWebClientAdapter.getUserSalaryInformation(reqEntity.getIdentityNumber())
                                         ).map(tuple -> {
                                             Status status = tuple.getT1();
                                             LoanType loanType = tuple.getT2();
+                                            UserSalaryInformationDTO userSalaryInformationDTO = tuple.getT3();
 
                                             // convertir entity → domain y enriquecer
                                             Requests req = this.toEntity(reqEntity);
                                             req.setStatusName(status.getName());
                                             req.setLoanTypeName(loanType.getName());
+                                            req.setName(userSalaryInformationDTO.name());
+                                            req.setBaseSalary(userSalaryInformationDTO.baseSalary());
+                                            req.setMonthlyAmount((req.getAmount() + (req.getAmount() * (loanType.getInterestRate() / 100)))/req.getTerm());
 
                                             return req;
                                         })

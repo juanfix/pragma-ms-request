@@ -3,6 +3,7 @@ package co.com.pragma.r2dbc.paginator;
 import co.com.pragma.model.requests.dto.PageCriteria;
 import co.com.pragma.model.requests.dto.PagedSummary;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.data.relational.core.query.Query;
@@ -23,7 +24,8 @@ public class Paginator {
 
         Query pagedQuery = query
                 .limit(request.size())
-                .offset(request.offset());
+                .offset(request.offset())
+                .sort(Sort.by(Sort.Direction.DESC, "id"));
 
         Mono<Long> total = template.count(query, type);
 
@@ -32,7 +34,7 @@ public class Paginator {
                 .zipWith(total)
                 .map(tuple -> new PagedSummary<>(
                         tuple.getT1(),
-                        request.page(),
+                        request.page() + 1,
                         request.size(),
                         tuple.getT2()
                 ));
