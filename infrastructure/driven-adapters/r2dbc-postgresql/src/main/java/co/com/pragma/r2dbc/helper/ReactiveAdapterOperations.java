@@ -1,6 +1,9 @@
 package co.com.pragma.r2dbc.helper;
 
+import co.com.pragma.model.requests.dto.PageCriteria;
+import co.com.pragma.model.requests.dto.RequestsFilter;
 import org.reactivecommons.utils.ObjectMapper;
+import org.reactivestreams.Publisher;
 import org.springframework.data.domain.Example;
 import org.springframework.data.repository.query.ReactiveQueryByExampleExecutor;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;

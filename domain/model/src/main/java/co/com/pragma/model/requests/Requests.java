@@ -14,9 +14,14 @@ public class Requests {
     private Long id;
     private Long amount;
     private Integer term;
+    private String name;
     private String email;
     private String identityNumber;
+    private Long baseSalary;
     private Long statusId;
+    private String statusName;
     private Long loanTypeId;
+    private String loanTypeName;
+    private Float monthlyAmount;
 
 }
