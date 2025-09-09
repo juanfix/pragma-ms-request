@@ -135,20 +135,6 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
                                         pageSummaryEntity.total()
                                 ))
                 );
-
-//        return paginator.paginate(criteria, RequestsEntity.class, page)
-//                .map(pageSummaryEntity -> {
-//                    List<Requests> content = pageSummaryEntity.request()
-//                            .stream()
-//                            .map(this::toEntity)
-//                            .toList();
-//                    return new PagedSummary<>(
-//                            content,
-//                            pageSummaryEntity.page(),
-//                            pageSummaryEntity.size(),
-//                            pageSummaryEntity.total()
-//                    );
-//                });
     }
 
     @Override

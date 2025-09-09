@@ -8,6 +8,8 @@ import co.com.pragma.model.requests.dto.RequestsFilter;
 import co.com.pragma.usecase.requests.RequestsUseCase;
 import co.com.pragma.usecase.requests.validations.error.RequestsValidationException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -20,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.server.ServerRequest;
@@ -127,6 +130,61 @@ public class Handler {
                 .body(requestsUseCase.findAllRequests(), Requests.class);
     }
 
+    @GetMapping(path = "/api/v1/request/by-filter", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Find a list of requests",
+            description = "Returns the information about the request by any filters.",
+            parameters = {
+                    @Parameter(
+                            name = "page",
+                            description = "Page number for pagination",
+                            in = ParameterIn.QUERY,
+                            schema = @Schema(type = "integer", example = "0")
+                    ),
+                    @Parameter(
+                            name = "size",
+                            description = "Page size for pagination",
+                            in = ParameterIn.QUERY,
+                            schema = @Schema(type = "integer", example = "10")
+                    ),
+                    @Parameter(
+                            name = "statusId",
+                            description = "Filter by status identifier",
+                            in = ParameterIn.QUERY,
+                            schema = @Schema(type = "integer", example = "1")
+                    ),
+                    @Parameter(
+                            name = "loanTypeId",
+                            description = "Filter by loan type identifier",
+                            in = ParameterIn.QUERY,
+                            schema = @Schema(type = "integer", example = "2")
+                    )
+            },
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Ok",
+                            content = @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = GetRequestsByFiltersResponseDTO.class)
+                            )
+                    ),
+                    @ApiResponse(responseCode = "400", description = "Bad request",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = CreateRequestBRResponseDTO.class))),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = UnauthorizedDTO.class))),
+                    @ApiResponse(responseCode = "403", description = "Forbidden",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = UnauthorizedDTO.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = CreateRequestsFailResponseDTO.class)))
+            }
+    )
+    @SecurityRequirement(name = "Authorization")
+    @PreAuthorize("hasAnyAuthority('ASESOR')")
     public Mono<ServerResponse> listenGetAllRequestsByFilter(ServerRequest serverRequest) {
         Long statusId = serverRequest.queryParam("statusId")
                 .map(Long::valueOf)
