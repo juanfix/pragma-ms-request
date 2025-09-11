@@ -1,0 +1,36 @@
+services:
+  postgres-request:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pg_data_request:/var/lib/postgresql/data
+    networks:
+      - pragma_prod
+
+  ms-request:
+    build:
+      context: .
+      dockerfile: deployment/Dockerfile
+    depends_on:
+      - postgres-request
+    environment:
+      POSTGRES_HOST: postgres-request
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      AUTHENTICATION_BASE_URL: ${AUTHENTICATION_BASE_URL}
+      APP_SECRET_KEY: ${APP_SECRET_KEY}
+      APP_EXP_TIME: ${APP_EXP_TIME}
+    networks:
+      - pragma_prod
+
+volumes:
+  pg_data_request:
+
+networks:
+  pragma_prod: # se debe crear la red externa para conectar los micros
+    external: true
