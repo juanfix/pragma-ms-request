@@ -125,24 +125,34 @@ public class RequestsUseCase implements RequestsUseCaseInterface {
                         statusRepository.findStatusById(newStatusId)
                                 .switchIfEmpty(Mono.error(new RequestsValidationException(
                                         "Invalid status with Id: " + newStatusId)))
-                                .flatMap(status -> {
+                                .flatMap(statusValidated -> {
                                     request.setStatusId(newStatusId);
                                     return requestsRepository.saveRequests(request)
                                             .doOnNext(saved -> logger.info(String.format("Solicitud [%d] actualizada a [%s]",
                                                     saved.getId(), saved.getLoanTypeName())))
-                                            .flatMap(saved ->
-                                                    sqsUseCaseInterface.publishStatusRequest(
-                                                                    SqsMessageDTO.builder()
-                                                                            .to(request.getEmail())
-                                                                            .subject("El estado de su solicitud de préstamo es " + saved.getLoanTypeName())
-                                                                            .body(
-                                                                                    String.format("Su solicitud de préstamo con ID %d ha sido %s.",
-                                                                                            saved.getId(), saved.getLoanTypeName())
-                                                                            )
-                                                                            .build())
-                                                            .doOnSuccess(v -> logger.info(String.format("Evento enviado a SQS para solicitud [%d]", saved.getId())))
-                                                            .thenReturn(saved)
-                                            );
+                                            .flatMap(saved -> {
+                                                Mono<Status> statusMono = statusRepository.findStatusById(request.getStatusId());
+                                                Mono<LoanType> loanTypeMono = loanTypeRepository.findLoanTypeById(request.getLoanTypeId());
+
+                                                return Mono.zip(statusMono, loanTypeMono)
+                                                        .flatMap(tuple -> {
+                                                            Status status = tuple.getT1();
+                                                            LoanType loanType = tuple.getT2();
+
+                                                            return sqsUseCaseInterface.publishStatusRequest(
+                                                                            SqsMessageDTO.builder()
+                                                                                    .to(saved.getEmail())
+                                                                                    .subject("El estado de su solicitud de préstamo es " + status.getName())
+                                                                                    .body(String.format(
+                                                                                            "Su solicitud de préstamo de tipo %s ha sido %s.",
+                                                                                            loanType.getName(), status.getName()
+                                                                                    ))
+                                                                                    .build()
+                                                                    )
+                                                                    .doOnSuccess(v -> logger.info(String.format("Evento enviado a SQS para solicitud [%d]", saved.getId())))
+                                                                    .thenReturn(saved);
+                                                        });
+                                            });
                                 })
                 )
                 .doOnError(e -> {

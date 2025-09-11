@@ -7,6 +7,7 @@ import co.com.pragma.api.requests.dto.create.CreateRequestsReponseDTO;
 import co.com.pragma.api.requests.dto.create.CreateRequestsRequestDTO;
 import co.com.pragma.api.requests.dto.get.GetRequestsByFiltersResponseDTO;
 import co.com.pragma.api.requests.dto.update.UpdateRequestRequestDTO;
+import co.com.pragma.api.requests.dto.update.UpdateRequestResponseDTO;
 import co.com.pragma.jjwtsecurity.jwt.provider.JwtProvider;
 import co.com.pragma.model.requests.Requests;
 import co.com.pragma.model.requests.dto.PageCriteria;
@@ -30,6 +31,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -224,6 +226,40 @@ public class Handler {
                 .switchIfEmpty(ServerResponse.notFound().build());
     }
 
+    @PutMapping(path = "/api/v1/request/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Edit a status of the request.",
+            description = "Returns update results.",
+            requestBody = @RequestBody(
+                    required = true,
+                    description = "Request information required.",
+                    content = @Content(schema = @Schema(implementation = UpdateRequestRequestDTO.class))
+            ),
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Ok",
+                            content = @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = UpdateRequestResponseDTO.class)
+                            )
+                    ),
+                    @ApiResponse(responseCode = "400", description = "Bad request",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = CreateRequestBRResponseDTO.class))),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = UnauthorizedDTO.class))),
+                    @ApiResponse(responseCode = "403", description = "Forbidden",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = UnauthorizedDTO.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = CreateRequestsFailResponseDTO.class)))
+            }
+    )
+    @SecurityRequirement(name = "Authorization")
+    @PreAuthorize("hasAnyAuthority('ASESOR')")
     public Mono<ServerResponse> listenUpdateRequest(ServerRequest serverRequest) {
         Long requestsId  = Long.valueOf(serverRequest.pathVariable("id"));
         return serverRequest.bodyToMono(UpdateRequestRequestDTO.class)

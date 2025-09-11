@@ -41,7 +41,7 @@ adapters:
     password: "${POSTGRES_PASSWORD:root}"
   sqs:
     region: "us-east-1"
-    queueUrl: "http://localhost:4566/000000000000/sample"
+    queueUrl: "${SQS_QUEUE_URL:https://sqs.us-east-1.amazonaws.com/225685253174/sqs_email_sender_to_ses}"
     # endpoint: "http://localhost:4566 # For localstack only"
 ms-authentication:
   base-url: "${AUTHENTICATION_BASE_URL:http://localhost:8080}"
