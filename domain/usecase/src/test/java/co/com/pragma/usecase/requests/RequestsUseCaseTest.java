@@ -9,6 +9,7 @@ import co.com.pragma.model.requests.dto.RequestsFilter;
 import co.com.pragma.model.requests.gateways.RequestsRepository;
 import co.com.pragma.model.status.Status;
 import co.com.pragma.model.status.gateways.StatusRepository;
+import co.com.pragma.usecase.requests.dto.SqsMessageDTO;
 import co.com.pragma.usecase.requests.validations.error.RequestsValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,7 @@ class RequestsUseCaseTest {
     private StatusRepository statusRepository;
     private RequestsUseCase requestsUseCase;
     private UserUseCaseInterface userUseCaseInterface;
+    private SqsUseCaseInterface sqsUseCaseInterface;
 
     @BeforeEach
     void setUp(){
@@ -37,8 +39,8 @@ class RequestsUseCaseTest {
         loanTypeRepository = mock(LoanTypeRepository.class);
         statusRepository = mock(StatusRepository.class);
         userUseCaseInterface = mock(UserUseCaseInterface.class);
-        requestsUseCase = new RequestsUseCase(loanTypeRepository, statusRepository, requestsRepository, userUseCaseInterface);
-
+        sqsUseCaseInterface = mock(SqsUseCaseInterface.class);
+        requestsUseCase = new RequestsUseCase(loanTypeRepository, statusRepository, requestsRepository, userUseCaseInterface, sqsUseCaseInterface);
     }
 
     @Test
@@ -84,6 +86,40 @@ class RequestsUseCaseTest {
     }
 
     @Test
+    void shouldFailCreateWhenUserIsNotValid() {
+        Requests requests = Requests.builder()
+                .id(1L)
+                .amount(6000000L)
+                .term(12)
+                .email("juan@mail.com")
+                .identityNumber("123456")
+                .build();
+
+        LoanType loanType = new LoanType(1L, "Libre inversion", 3000000L, 25000000L,15.0F, Boolean.TRUE);
+
+        Status status = new Status(1L, "Pendiente", "Solicitud en espera para revisar");
+
+        when(requestsRepository.findByEmail("juan@mail.com"))
+                .thenReturn(Mono.empty());
+        when(loanTypeRepository.findLoanTypeById(any()))
+                .thenReturn(Mono.just(loanType));
+        when(statusRepository.findStatusById(any()))
+                .thenReturn(Mono.just(status));
+        when(userUseCaseInterface.isValidUser("123456", "juan@mail.com"))
+                .thenReturn(Mono.just(false));
+        when(requestsRepository.saveRequests(requests))
+                .thenAnswer(invocation -> {
+                    Requests u = invocation.getArgument(0);
+                    u.setLoanTypeId(loanType.getId());
+                    return Mono.just(u);
+                });
+
+        StepVerifier.create(requestsUseCase.saveRequests(requests))
+                .expectErrorMatches(throwable -> throwable instanceof RequestsValidationException)
+                .verify();
+    }
+
+    @Test
     void shouldFindAllRequests() {
         Requests request1 = Requests.builder()
                 .id(1L)
@@ -109,6 +145,45 @@ class RequestsUseCaseTest {
                 .verifyComplete();
 
         verify(requestsRepository, times(1)).findAllRequests();
+    }
+
+    @Test
+    void shouldFindRequestsById() {
+        Requests request = Requests.builder()
+                .id(1L)
+                .amount(6000000L)
+                .term(12)
+                .email("juan@mail.com")
+                .identityNumber("123456")
+                .build();
+
+        when(requestsRepository.findRequestsById(request.getId())).thenReturn(Mono.just(request));
+
+        StepVerifier.create(requestsUseCase.findRequestsById(request.getId()))
+                .expectNext(request)
+                .verifyComplete();
+
+        verify(requestsRepository, times(1)).findRequestsById(request.getId());
+    }
+
+    @Test
+    void shouldFindRequestByEmail() {
+        String email = "juanjo@mail.com";
+        Requests user = Requests.builder()
+                .id(2L)
+                .amount(5000000L)
+                .term(10)
+                .email("juanjo@mail.com")
+                .identityNumber("123")
+                .build();
+
+        when(requestsRepository.findByEmail(email)).thenReturn(Mono.just(user));
+
+        StepVerifier.create(requestsUseCase.getRequestsByEmail(email))
+                .expectNext(user)
+                .verifyComplete();
+
+        verify(requestsRepository, times(1)).findByEmail(email);
     }
 
     @Test
@@ -209,6 +284,86 @@ class RequestsUseCaseTest {
         verify(requestsRepository).findAllByFilters(requestsFilter, new PageCriteria(1, 10));
         verify(statusRepository).findStatusById(1L);
         verify(loanTypeRepository).findLoanTypeById(1L);
+    }
+
+    @Test
+    void shouldUpdateAStatusRequest() {
+        Requests requests = Requests.builder()
+                .id(1L)
+                .amount(6000000L)
+                .term(12)
+                .email("juan@mail.com")
+                .identityNumber("123456")
+                .statusId(4L)
+                .loanTypeId(1L)
+                .build();
+
+        LoanType loanType = new LoanType(1L, "Libre inversion", 3000000L, 25000000L,15.0F, Boolean.TRUE);
+
+        Status status = new Status(1L, "Pendiente", "Solicitud en espera para revisar");
+
+        when(requestsRepository.findRequestsById(requests.getId()))
+                .thenReturn(Mono.just(requests));
+        when(loanTypeRepository.findLoanTypeById(any()))
+                .thenReturn(Mono.just(loanType));
+        when(statusRepository.findStatusById(any()))
+                .thenReturn(Mono.just(status));
+        when(sqsUseCaseInterface.publishStatusRequest(any(SqsMessageDTO.class)))
+                .thenReturn(Mono.empty());
+        when(requestsRepository.saveRequests(requests))
+                .thenAnswer(invocation -> {
+                    Requests u = invocation.getArgument(0);
+                    u.setLoanTypeId(loanType.getId());
+                    return Mono.just(u);
+                });
+
+        StepVerifier.create(requestsUseCase.updateRequests(requests.getId(), 1L))
+                .expectNextMatches(r -> r.getStatusId().equals(1L) &&
+                        r.getLoanTypeId() != null &&
+                        r.getLoanTypeId().equals(1L))
+                .verifyComplete();
+
+        ArgumentCaptor<Requests> captor = ArgumentCaptor.forClass(Requests.class);
+        verify(requestsRepository).saveRequests(captor.capture());
+        Requests savedRequest = captor.getValue();
+        assertEquals("juan@mail.com", savedRequest.getEmail());
+        assertEquals(1L, savedRequest.getStatusId());
+    }
+
+    @Test
+    void shouldFailWhenUpdateAStatusIdIsNull() {
+        Requests requests = Requests.builder()
+                .id(1L)
+                .amount(6000000L)
+                .term(12)
+                .email("juan@mail.com")
+                .identityNumber("123456")
+                .statusId(null)
+                .loanTypeId(1L)
+                .build();
+
+        LoanType loanType = new LoanType(1L, "Libre inversion", 3000000L, 25000000L,15.0F, Boolean.TRUE);
+
+        Status status = new Status(1L, "Pendiente", "Solicitud en espera para revisar");
+
+        when(requestsRepository.findRequestsById(requests.getId()))
+                .thenReturn(Mono.just(requests));
+        when(loanTypeRepository.findLoanTypeById(any()))
+                .thenReturn(Mono.just(loanType));
+        when(statusRepository.findStatusById(any()))
+                .thenReturn(Mono.just(status));
+        when(sqsUseCaseInterface.publishStatusRequest(any(SqsMessageDTO.class)))
+                .thenReturn(Mono.empty());
+        when(requestsRepository.saveRequests(requests))
+                .thenAnswer(invocation -> {
+                    Requests u = invocation.getArgument(0);
+                    u.setLoanTypeId(loanType.getId());
+                    return Mono.just(u);
+                });
+
+        StepVerifier.create(requestsUseCase.updateRequests(requests.getId(), 1L))
+                .expectErrorMatches(throwable -> throwable instanceof RequestsValidationException)
+                .verify();
     }
 
 }

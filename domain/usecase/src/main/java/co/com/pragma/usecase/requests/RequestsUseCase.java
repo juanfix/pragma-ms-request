@@ -53,7 +53,7 @@ public class RequestsUseCase implements RequestsUseCaseInterface {
                                         return userUseCaseInterface.isValidUser(requests.getIdentityNumber(), requests.getEmail())
                                                 .flatMap(isValid -> {
                                                     if (Boolean.FALSE.equals(isValid)) {
-                                                        return Mono.error(new RuntimeException("User is not valid"));
+                                                        return Mono.error(new RequestsValidationException("User is not valid."));
                                                     }
                                                     Requests requestValidated = requests;
                                                     return requestsRepository.saveRequests(requestValidated);
