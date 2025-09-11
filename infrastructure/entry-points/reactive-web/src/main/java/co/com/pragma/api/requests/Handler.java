@@ -1,6 +1,12 @@
 package co.com.pragma.api.requests;
 
 import co.com.pragma.api.requests.dto.*;
+import co.com.pragma.api.requests.dto.create.CreateRequestBRResponseDTO;
+import co.com.pragma.api.requests.dto.create.CreateRequestsFailResponseDTO;
+import co.com.pragma.api.requests.dto.create.CreateRequestsReponseDTO;
+import co.com.pragma.api.requests.dto.create.CreateRequestsRequestDTO;
+import co.com.pragma.api.requests.dto.get.GetRequestsByFiltersResponseDTO;
+import co.com.pragma.api.requests.dto.update.UpdateRequestRequestDTO;
 import co.com.pragma.jjwtsecurity.jwt.provider.JwtProvider;
 import co.com.pragma.model.requests.Requests;
 import co.com.pragma.model.requests.dto.PageCriteria;
@@ -216,6 +222,29 @@ public class Handler {
                         .contentType(MediaType.TEXT_EVENT_STREAM)
                         .bodyValue(task))
                 .switchIfEmpty(ServerResponse.notFound().build());
+    }
+
+    public Mono<ServerResponse> listenUpdateRequest(ServerRequest serverRequest) {
+        Long requestsId  = Long.valueOf(serverRequest.pathVariable("id"));
+        return serverRequest.bodyToMono(UpdateRequestRequestDTO.class)
+                .doOnNext(dto -> log.info("Petición de actualización recibida para solicitud {} con estado {}", requestsId, dto.newStatusId()))
+                .flatMap(requestDTO -> requestsUseCase.updateRequests(
+                                requestsId,
+                                requestDTO.newStatusId()
+                        )
+                        .doOnNext(request -> log.info("Solicitud {} actualizada a estado {}", requestsId, requestDTO.newStatusId()))
+                        .flatMap(entity -> ServerResponse.ok()
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(entity)))
+                .onErrorResume(RequestsValidationException.class, e -> {
+                    log.warn("Error de validación en updateRequests: {}", e.getMessage());
+                    return ServerResponse.badRequest().bodyValue("Validation error: " + e.getMessage());
+                })
+                .onErrorResume(e -> {
+                    log.error("Error inesperado en updateRequests", e);
+                    return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .bodyValue("Ocurrió un error inesperado");
+                });
     }
 
     private Mono<ServerResponse> errorResponse(Integer code,String error, String message, HttpStatus httpStatus) {

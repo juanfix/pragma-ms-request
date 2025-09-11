@@ -37,7 +37,6 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
     private final StatusReactiveRepositoryAdapter statusReactiveRepositoryAdapter;
     private final LoanTypeReactiveRepositoryAdapter loanTypeReactiveRepositoryAdapter;
 
-
     public RequestsReactiveRepositoryAdapter(RequestsReactiveRepository repository,
                                              ObjectMapper mapper,
                                              TransactionalOperator transactionalOperator,
@@ -70,6 +69,11 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
     @Transactional(readOnly = true)
     public Flux<Requests> findAllRequests() {
         return transactionalOperator.execute(status -> super.findAll());
+    }
+
+    @Override
+    public Mono<Requests> findRequestsById(Long id) {
+        return transactionalOperator.execute(status -> super.findById(id)).next();
     }
 
     @Override
