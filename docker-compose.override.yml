@@ -1,0 +1,16 @@
+services:
+  postgres-request:
+    ports:
+      - "5434:5432"   # se expone en el puerto 5434
+  ms-request:
+    ports:
+      - "8091:8081"   # se expone en el host en 8091
+    environment:
+      POSTGRES_HOST: postgres-request
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      AUTHENTICATION_BASE_URL: ${AUTHENTICATION_BASE_URL}
+      APP_SECRET_KEY: ${APP_SECRET_KEY}
+      APP_EXP_TIME: ${APP_EXP_TIME}
