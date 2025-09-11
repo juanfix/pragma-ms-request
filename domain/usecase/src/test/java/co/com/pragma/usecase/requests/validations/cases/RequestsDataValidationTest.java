@@ -27,6 +27,19 @@ class RequestsDataValidationTest {
     }
 
     @Test
+    void shouldFailWhenIdentityNumberOrEmailIsNull() {
+        Requests requests = new Requests();
+        requests.setIdentityNumber("");
+        requests.setEmail("");
+        requests.setAmount(1000000L);
+        requests.setTerm(12);
+
+        StepVerifier.create(requestsDataValidation.validate(requests))
+                .expectError(RequestsValidationException.class)
+                .verify();
+    }
+
+    @Test
     void shouldFailWhenAmountIsNull() {
         Requests requests = new Requests();
         requests.setIdentityNumber("123");

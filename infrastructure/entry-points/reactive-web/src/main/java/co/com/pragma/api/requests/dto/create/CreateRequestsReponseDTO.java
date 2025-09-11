@@ -1,4 +1,4 @@
-package co.com.pragma.api.requests.dto;
+package co.com.pragma.api.requests.dto.create;
 
 public record CreateRequestsReponseDTO(
         Long id,

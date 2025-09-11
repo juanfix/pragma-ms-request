@@ -21,6 +21,7 @@ public class RouterTest {
         return route(POST(globalPath.getGlobal() + "/request"), userHandler::listenSaveRequest)
                 .andRoute(GET(globalPath.getGlobal()+ "/request"), userHandler::listenGetAllRequests)
                 .andRoute(GET(globalPath.getGlobal()+ "/request/by-filter"), userHandler::listenGetAllRequestsByFilter)
-                .andRoute(GET(globalPath.getGlobal() + "/request/{id}"), userHandler::listenGetRequestByIdentityNumber);
+                .andRoute(GET(globalPath.getGlobal() + "/request/{id}"), userHandler::listenGetRequestByIdentityNumber)
+                .andRoute(PUT(globalPath.getGlobal() + "/request/{id}"), userHandler::listenUpdateRequest);
     }
 }

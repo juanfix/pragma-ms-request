@@ -10,6 +10,7 @@ import reactor.core.publisher.Mono;
 public interface RequestsRepository {
     Mono<Requests> saveRequests(Requests requests);
     Flux<Requests> findAllRequests();
+    Mono<Requests> findRequestsById(Long id);
     Mono<Requests> findByIdentityNumber(String identityNumber);
     Mono<Requests> findByEmail(String email);
     Mono<PagedSummary<Requests>> findAllByFilters(RequestsFilter filter, PageCriteria page);

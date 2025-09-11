@@ -1,4 +1,4 @@
-package co.com.pragma.api.requests.dto;
+package co.com.pragma.api.requests.dto.get;
 
 import co.com.pragma.model.requests.Requests;
 
