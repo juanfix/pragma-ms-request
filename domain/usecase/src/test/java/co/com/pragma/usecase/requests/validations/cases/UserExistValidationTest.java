@@ -1,7 +1,7 @@
 package co.com.pragma.usecase.requests.validations.cases;
 
 import co.com.pragma.model.requests.Requests;
-import co.com.pragma.usecase.requests.UserUseCaseInterface;
+import co.com.pragma.usecase.requests.interfaces.UserUseCaseInterface;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;

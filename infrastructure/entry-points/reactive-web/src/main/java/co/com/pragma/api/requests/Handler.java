@@ -12,7 +12,9 @@ import co.com.pragma.jjwtsecurity.jwt.provider.JwtProvider;
 import co.com.pragma.model.requests.Requests;
 import co.com.pragma.model.requests.dto.PageCriteria;
 import co.com.pragma.model.requests.dto.RequestsFilter;
-import co.com.pragma.usecase.requests.RequestsUseCase;
+import co.com.pragma.usecase.requests.FindRequestsUseCase;
+import co.com.pragma.usecase.requests.SaveRequestsUseCase;
+import co.com.pragma.usecase.requests.UpdateRequestsUseCase;
 import co.com.pragma.usecase.requests.validations.error.RequestsValidationException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -48,11 +50,15 @@ import java.util.Map;
 @Tag(name = "Request", description = "Request endpoints")
 @Slf4j
 public class Handler {
-    private final RequestsUseCase requestsUseCase;
+    private final SaveRequestsUseCase saveRequestsUseCase;
+    private final FindRequestsUseCase findRequestsUseCase;
+    private final UpdateRequestsUseCase updateRequestsUseCase;
     private final JwtProvider jwtProvider;
 
-    public Handler(RequestsUseCase requestsUseCase, JwtProvider jwtProvider) {
-        this.requestsUseCase = requestsUseCase;
+    public Handler(SaveRequestsUseCase saveRequestsUseCase, FindRequestsUseCase findRequestsUseCase, UpdateRequestsUseCase updateRequestsUseCase, JwtProvider jwtProvider) {
+        this.saveRequestsUseCase = saveRequestsUseCase;
+        this.findRequestsUseCase = findRequestsUseCase;
+        this.updateRequestsUseCase = updateRequestsUseCase;
         this.jwtProvider = jwtProvider;
     }
 
@@ -105,7 +111,7 @@ public class Handler {
                                 return errorResponse(401, "Unauthorized","Token subject does not match email", HttpStatus.UNAUTHORIZED);
                             }
 
-                            return requestsUseCase.saveRequests(request)
+                            return saveRequestsUseCase.execute(request)
                                     .flatMap(savedRequest -> {
                                         URI url = UriComponentsBuilder
                                                 .fromUriString("/api/v1/request/{id}")
@@ -135,7 +141,7 @@ public class Handler {
                 //.contentType(MediaType.APPLICATION_JSON)
                 //.contentType(MediaType.APPLICATION_NDJSON)
                 .contentType(MediaType.TEXT_EVENT_STREAM)
-                .body(requestsUseCase.findAllRequests(), Requests.class);
+                .body(findRequestsUseCase.findAllRequests(), Requests.class);
     }
 
     @GetMapping(path = "/api/v1/request/by-filter", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -209,7 +215,7 @@ public class Handler {
 
         // TODO: manejar excepcion cuando PageCriteria llegue null
 
-        return requestsUseCase.findAllRequestsWithSummary(requestsFilter, pageCriteria)
+        return findRequestsUseCase.findAllRequestsWithSummary(requestsFilter, pageCriteria)
                 .flatMap(response -> ServerResponse.ok()
                         .contentType(MediaType.APPLICATION_JSON)
                         .bodyValue(response)
@@ -219,7 +225,7 @@ public class Handler {
     public Mono<ServerResponse> listenGetRequestByIdentityNumber(ServerRequest serverRequest) {
         String id = serverRequest.pathVariable("id");
 
-        return requestsUseCase.getRequestsByIdentityNumber(id)
+        return findRequestsUseCase.getRequestsByIdentityNumber(id)
                 .flatMap(task -> ServerResponse.ok()
                         .contentType(MediaType.TEXT_EVENT_STREAM)
                         .bodyValue(task))
@@ -264,7 +270,7 @@ public class Handler {
         Long requestsId  = Long.valueOf(serverRequest.pathVariable("id"));
         return serverRequest.bodyToMono(UpdateRequestRequestDTO.class)
                 .doOnNext(dto -> log.info("Petición de actualización recibida para solicitud {} con estado {}", requestsId, dto.newStatusId()))
-                .flatMap(requestDTO -> requestsUseCase.updateRequests(
+                .flatMap(requestDTO -> updateRequestsUseCase.execute(
                                 requestsId,
                                 requestDTO.newStatusId()
                         )

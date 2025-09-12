@@ -1,4 +1,4 @@
-package co.com.pragma.usecase.requests;
+package co.com.pragma.usecase.requests.interfaces;
 
 import co.com.pragma.usecase.requests.dto.UserSalaryInformationDTO;
 import reactor.core.publisher.Mono;
