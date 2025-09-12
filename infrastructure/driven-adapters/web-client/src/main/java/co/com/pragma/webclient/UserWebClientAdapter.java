@@ -1,10 +1,9 @@
 package co.com.pragma.webclient;
 
 import co.com.pragma.jjwtsecurity.jwt.provider.JwtProvider;
-import co.com.pragma.usecase.requests.UserUseCaseInterface;
+import co.com.pragma.usecase.requests.interfaces.UserUseCaseInterface;
 import co.com.pragma.usecase.requests.dto.UserSalaryInformationDTO;
 import co.com.pragma.webclient.dto.UserValidationRequestDTO;
-import co.com.pragma.webclient.dto.UserSalaryInformationRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;

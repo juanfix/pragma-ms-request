@@ -2,7 +2,7 @@ package co.com.pragma.sqs.sender;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import co.com.pragma.sqs.sender.config.SQSSenderProperties;
-import co.com.pragma.usecase.requests.SqsUseCaseInterface;
+import co.com.pragma.usecase.requests.interfaces.SqsUseCaseInterface;
 import co.com.pragma.usecase.requests.dto.SqsMessageDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
