@@ -56,7 +56,7 @@ class SaveRequestsUseCaseTest {
                 .thenReturn(Mono.just(status));
         when(userUseCaseInterface.isValidUser("123456", "juan@mail.com"))
                 .thenReturn(Mono.just(true));
-        when(requestsRepository.saveRequests(requests))
+        when(requestsRepository.saveRequests(requests, Boolean.FALSE))
                 .thenAnswer(invocation -> {
                     Requests u = invocation.getArgument(0);
                     u.setLoanTypeId(loanType.getId());
@@ -70,7 +70,7 @@ class SaveRequestsUseCaseTest {
                 .verifyComplete();
 
         ArgumentCaptor<Requests> captor = ArgumentCaptor.forClass(Requests.class);
-        verify(requestsRepository).saveRequests(captor.capture());
+        verify(requestsRepository).saveRequests(captor.capture(), any());
         Requests savedRequest = captor.getValue();
         assertEquals("juan@mail.com", savedRequest.getEmail());
         assertEquals(1L, savedRequest.getLoanTypeId());
@@ -98,7 +98,7 @@ class SaveRequestsUseCaseTest {
                 .thenReturn(Mono.just(status));
         when(userUseCaseInterface.isValidUser("123456", "juan@mail.com"))
                 .thenReturn(Mono.just(false));
-        when(requestsRepository.saveRequests(requests))
+        when(requestsRepository.saveRequests(requests, Boolean.FALSE))
                 .thenAnswer(invocation -> {
                     Requests u = invocation.getArgument(0);
                     u.setLoanTypeId(loanType.getId());
@@ -132,7 +132,7 @@ class SaveRequestsUseCaseTest {
                         throwable.getMessage().equals("The loan type Id does not exists."))
                 .verify();
 
-        verify(requestsRepository, never()).saveRequests(requests);
+        verify(requestsRepository, never()).saveRequests(requests, Boolean.FALSE);
     }
 
 }

@@ -60,7 +60,7 @@ public class SaveRequestsUseCase implements SaveRequestsUseCaseInterface {
                         return Mono.error(new RequestsValidationException("User is not valid."));
                     }
                     Requests requestValidated = requests;
-                    return requestsRepository.saveRequests(requestValidated);
+                    return requestsRepository.saveRequests(requestValidated, Boolean.FALSE);
                 });
     }
 }

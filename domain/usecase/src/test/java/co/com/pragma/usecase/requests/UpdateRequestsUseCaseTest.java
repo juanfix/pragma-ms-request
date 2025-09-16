@@ -60,7 +60,7 @@ class UpdateRequestsUseCaseTest {
                 .thenReturn(Mono.just(status));
         when(sqsUseCaseInterface.publishStatusRequest(any(SqsMessageDTO.class)))
                 .thenReturn(Mono.empty());
-        when(requestsRepository.saveRequests(requests))
+        when(requestsRepository.saveRequests(requests, Boolean.TRUE))
                 .thenAnswer(invocation -> {
                     Requests u = invocation.getArgument(0);
                     u.setLoanTypeId(loanType.getId());
@@ -74,7 +74,7 @@ class UpdateRequestsUseCaseTest {
                 .verifyComplete();
 
         ArgumentCaptor<Requests> captor = ArgumentCaptor.forClass(Requests.class);
-        verify(requestsRepository).saveRequests(captor.capture());
+        verify(requestsRepository).saveRequests(captor.capture(), any());
         Requests savedRequest = captor.getValue();
         assertEquals("juan@mail.com", savedRequest.getEmail());
         assertEquals(1L, savedRequest.getStatusId());
@@ -104,7 +104,7 @@ class UpdateRequestsUseCaseTest {
                 .thenReturn(Mono.just(status));
         when(sqsUseCaseInterface.publishStatusRequest(any(SqsMessageDTO.class)))
                 .thenReturn(Mono.empty());
-        when(requestsRepository.saveRequests(requests))
+        when(requestsRepository.saveRequests(requests, Boolean.TRUE))
                 .thenAnswer(invocation -> {
                     Requests u = invocation.getArgument(0);
                     u.setLoanTypeId(loanType.getId());

@@ -51,9 +51,9 @@ public class UpdateRequestsUseCase implements UpdateRequestsUseCaseInterface {
 
     private Mono<Requests> saveRequests(Long newStatusId, Requests request) {
         request.setStatusId(newStatusId);
-        return requestsRepository.saveRequests(request)
+        return requestsRepository.saveRequests(request, Boolean.TRUE)
                 .doOnNext(saved -> logger.info(String.format("Solicitud [%d] actualizada a [%s]",
-                        saved.getId(), saved.getLoanTypeName())))
+                        saved.getId(), saved.getStatusId())))
                 .flatMap(saved -> {
                     return getStatusAndLoanTypeName(request, saved);
                 });
