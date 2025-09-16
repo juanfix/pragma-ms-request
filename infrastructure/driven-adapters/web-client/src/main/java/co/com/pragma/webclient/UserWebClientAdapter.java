@@ -5,6 +5,8 @@ import co.com.pragma.usecase.requests.interfaces.UserUseCaseInterface;
 import co.com.pragma.usecase.requests.dto.UserSalaryInformationDTO;
 import co.com.pragma.webclient.dto.UserValidationRequestDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -12,12 +14,16 @@ import reactor.core.publisher.Mono;
 import java.util.logging.Logger;
 
 @Component
-@RequiredArgsConstructor
 public class UserWebClientAdapter implements UserUseCaseInterface {
 
     private final WebClient webClient;
     private final JwtProvider jwtProvider;
     private static final Logger logger = Logger.getLogger(UserWebClientAdapter.class.getName());
+
+    public UserWebClientAdapter(@Qualifier("userWebClient") WebClient webClient, JwtProvider jwtProvider) {
+        this.webClient = webClient;
+        this.jwtProvider = jwtProvider;
+    }
 
     @Override
     public Mono<Boolean> isValidUser(String identityNumber, String email) {

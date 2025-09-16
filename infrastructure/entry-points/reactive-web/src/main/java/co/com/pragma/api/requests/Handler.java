@@ -125,7 +125,9 @@ public class Handler {
                 .doOnError(ex -> {
                     log.error("❌ Ocurrió un error en el proceso: {}", ex.getMessage());
                 })
-                .doOnNext(savedRequest -> log.info("✅ solicitud almacenada en la base de datos: {}", savedRequest))
+                .doOnNext(savedRequest -> {
+                    log.info("✅ solicitud almacenada en la base de datos: {}", savedRequest);
+                })
                 .onErrorResume(RequestsValidationException.class, e -> {
                     log.warn("Error al validar los datos de la solicitud: {}", e.getMessage());
                     return errorResponse(400, "Bad request",e.getMessage(), HttpStatus.BAD_REQUEST);

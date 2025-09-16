@@ -10,17 +10,23 @@ import co.com.pragma.model.status.Status;
 import co.com.pragma.r2dbc.entity.RequestsEntity;
 import co.com.pragma.r2dbc.helper.ReactiveAdapterOperations;
 import co.com.pragma.r2dbc.paginator.Paginator;
+import co.com.pragma.usecase.requests.dto.LambdaDebtCapacityRequestDTO;
 import co.com.pragma.usecase.requests.dto.UserSalaryInformationDTO;
+import co.com.pragma.webclient.LambdaWebClientAdapter;
 import co.com.pragma.webclient.UserWebClientAdapter;
 import org.reactivecommons.utils.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @Repository
 public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations<
@@ -34,17 +40,19 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
     private final TransactionalOperator transactionalOperator;
     private final Paginator paginator;
     private final UserWebClientAdapter userWebClientAdapter;
+    private final LambdaWebClientAdapter lambdaWebClientAdapter;
     private final StatusReactiveRepositoryAdapter statusReactiveRepositoryAdapter;
     private final LoanTypeReactiveRepositoryAdapter loanTypeReactiveRepositoryAdapter;
 
+    @Autowired
     public RequestsReactiveRepositoryAdapter(RequestsReactiveRepository repository,
                                              ObjectMapper mapper,
                                              TransactionalOperator transactionalOperator,
                                              Paginator paginator,
                                              UserWebClientAdapter userWebClientAdapter,
+                                             LambdaWebClientAdapter lambdaWebClientAdapter,
                                              StatusReactiveRepositoryAdapter statusReactiveRepositoryAdapter,
                                              LoanTypeReactiveRepositoryAdapter loanTypeReactiveRepositoryAdapter
-
     ) {
         /**
          *  Could be use mapper.mapBuilder if your domain model implement builder pattern
@@ -55,20 +63,53 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
         this.transactionalOperator = transactionalOperator;
         this.paginator = paginator;
         this.userWebClientAdapter = userWebClientAdapter;
+        this.lambdaWebClientAdapter = lambdaWebClientAdapter;
         this.statusReactiveRepositoryAdapter = statusReactiveRepositoryAdapter;
         this.loanTypeReactiveRepositoryAdapter = loanTypeReactiveRepositoryAdapter;
     }
 
     @Override
     @Transactional
-    public Mono<Requests> saveRequests(Requests requests) {
-        return transactionalOperator.execute(status -> super.save(requests)).next();
+    public Mono<Requests> saveRequests(Requests requests, Boolean isUpdateRequests) {
+        return transactionalOperator.execute(status ->
+                super.save(requests))
+                .flatMap(requestsSaved -> {
+                    if(isUpdateRequests.equals(Boolean.FALSE)){
+                        return loanTypeReactiveRepositoryAdapter.findById(requestsSaved.getLoanTypeId())
+                                .flatMap(loanType -> {
+                                    requestsSaved.setLoanType(loanType);
+                                    if (Boolean.TRUE.equals(loanType.getAutomaticValidation())) {
+                                        return sendLambdaDebtCapacity(requestsSaved);
+                                    }
+                                    return Mono.just(requestsSaved);
+                                });
+                    }
+                    return Mono.just(requestsSaved);
+                })
+                .next();
     }
 
     @Override
     @Transactional(readOnly = true)
     public Flux<Requests> findAllRequests() {
         return transactionalOperator.execute(status -> super.findAll());
+    }
+
+    @Override
+    public Flux<Requests> findAllRequestsByEmailAndStatus(String email, Long statusId) {
+        Requests requests = new Requests();
+        requests.setEmail(email);
+        requests.setStatusId(statusId);
+
+        return transactionalOperator.execute(status -> findByExample(requests)
+                .flatMap(requestsSearched ->
+                        loanTypeReactiveRepositoryAdapter.findById(requestsSearched.getLoanTypeId())
+                                .map(loanType -> {
+                                    requestsSearched.setLoanType(loanType);
+                                    return requestsSearched;
+                                })
+                )
+                .switchIfEmpty(Mono.empty()));
     }
 
     @Override
@@ -149,5 +190,32 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
     @Override
     public Mono<Double> sumAmountByFilters(RequestsFilter filter) {
         return Mono.just(0.0);
+    }
+
+    private Mono<Requests> sendLambdaDebtCapacity(Requests requestsSaved) {
+        Mono<List<Requests>> activeLoansMono =
+                findAllRequestsByEmailAndStatus(requestsSaved.getEmail(), 1L)
+                        .collectList();
+
+        Mono<UserSalaryInformationDTO> userSalaryInformationDTO =
+                userWebClientAdapter.getUserSalaryInformation(requestsSaved.getIdentityNumber());
+
+        Mono<LoanType> loanType = loanTypeReactiveRepositoryAdapter.findById(requestsSaved.getLoanTypeId());
+
+        return Mono.zip(activeLoansMono, userSalaryInformationDTO, loanType)
+                .map(tuple -> new LambdaDebtCapacityRequestDTO(
+                        tuple.getT2().baseSalary(),         // totalIncome
+                        tuple.getT1(),         // activeLoans
+                        new LambdaDebtCapacityRequestDTO.Loan(
+                                requestsSaved.getId(),
+                                requestsSaved.getAmount(),
+                                tuple.getT3().getInterestRate(),
+                                requestsSaved.getTerm(),
+                                tuple.getT3().getAutomaticValidation()
+                        ),         // newLoan
+                        requestsSaved.getEmail()
+                ))
+                .flatMap(lambdaWebClientAdapter::sendToLambdaDebtCapacity)
+                .thenReturn(requestsSaved);
     }
 }
