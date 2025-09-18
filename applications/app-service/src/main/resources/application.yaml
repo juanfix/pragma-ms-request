@@ -40,15 +40,20 @@ adapters:
     username: "${POSTGRES_USER:postgres}"
     password: "${POSTGRES_PASSWORD:root}"
   sqs:
-    region: "us-east-1"
-    queueUrl: "${SQS_SENDER_QUEUE_URL:https://sqs.us-east-1.amazonaws.com/225685253174/sqs_email_sender_to_ses}"
+    queues:
+      emailQueue:
+        region: "us-east-1"
+        queueUrl: "${SQS_SENDER_EMAIL_QUEUE_URL:https://sqs.us-east-1.amazonaws.com/225685253174/sqs_email_sender_to_ses}"
+      reportQueue:
+        region: "us-east-1"
+        queueUrl: "${SQS_SENDER_QUEUE_REPORT_URL:https://sqs.us-east-1.amazonaws.com/225685253174/sqs_update_report}"
 ms-authentication:
   base-url: "${AUTHENTICATION_BASE_URL:http://localhost:8080}"
   jwt-secret-key: "${APP_SECRET_KEY:9a4f2c8d3b7a1e6f45c8a0b3f267d8b1d4e6f3c8a9d2b5f8e3a9c8b5f6v8a3d9}"
   jwt-expiration: "${APP_EXP_TIME:3600000}"
 entrypoint:
   lambda:
-    base-url: "${LAMBDA_DEBT_CAPACITY_BASE_URL:https://qvuazkokvd.execute-api.us-east-1.amazonaws.com}"
+    base-url: "${LAMBDA_DEBT_CAPACITY_BASE_URL:https://tdiveru7v8.execute-api.us-east-1.amazonaws.com}"
   sqs:
     region: "us-east-1"
     # endpoint: "${SQS_SENDER_QUEUE_ENDPOINT:http://localhost:4566}"

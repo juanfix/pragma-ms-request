@@ -73,6 +73,7 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
     public Mono<Requests> saveRequests(Requests requests, Boolean isUpdateRequests) {
         return transactionalOperator.execute(status ->
                 super.save(requests))
+                .single()
                 .flatMap(requestsSaved -> {
                     if(isUpdateRequests.equals(Boolean.FALSE)){
                         return loanTypeReactiveRepositoryAdapter.findById(requestsSaved.getLoanTypeId())
@@ -85,8 +86,7 @@ public class RequestsReactiveRepositoryAdapter extends ReactiveAdapterOperations
                                 });
                     }
                     return Mono.just(requestsSaved);
-                })
-                .next();
+                });
     }
 
     @Override

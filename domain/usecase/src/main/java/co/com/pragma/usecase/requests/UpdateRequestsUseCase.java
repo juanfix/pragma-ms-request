@@ -6,7 +6,8 @@ import co.com.pragma.model.requests.Requests;
 import co.com.pragma.model.requests.gateways.RequestsRepository;
 import co.com.pragma.model.status.Status;
 import co.com.pragma.model.status.gateways.StatusRepository;
-import co.com.pragma.usecase.requests.dto.SqsMessageDTO;
+import co.com.pragma.usecase.requests.dto.SqsEmailMessageDTO;
+import co.com.pragma.usecase.requests.dto.SqsReportMessageDTO;
 import co.com.pragma.usecase.requests.interfaces.SqsUseCaseInterface;
 import co.com.pragma.usecase.requests.validations.error.RequestsValidationException;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,21 @@ public class UpdateRequestsUseCase implements UpdateRequestsUseCaseInterface {
                 .doOnError(e -> {
                     logger.severe(String.format("Error al actualizar la solicitud [%d]: %s", requestsId, e.getMessage()));
                 });
+    }
+
+    private Mono<Requests> validateUpdateRequests(Requests requests) {
+        if (requests.getStatusId() == null || requests.getLoanTypeId() == null) {
+            return Mono.error(new RequestsValidationException("Request structure is incomplete (status an loan type)."));
+        }
+
+        return Mono.zip(
+                statusRepository.findStatusById(requests.getStatusId()),
+                loanTypeRepository.findLoanTypeById(requests.getLoanTypeId())
+        ).map(tuple -> {
+            requests.setStatusName(tuple.getT1().getName());
+            requests.setLoanTypeName(tuple.getT2().getName());
+            return requests;
+        });
     }
 
     private Mono<Requests> validateStatusId(Long newStatusId, Requests request) {
@@ -73,8 +89,9 @@ public class UpdateRequestsUseCase implements UpdateRequestsUseCaseInterface {
     }
 
     private Mono<Requests> publishRequestsUpdateToSqs(Requests saved, Status status, LoanType loanType) {
-        return sqsUseCaseInterface.publishStatusRequest(
-                        SqsMessageDTO.builder()
+        logger.info("Se envia solicitud al Sqs de email");
+        return sqsUseCaseInterface.publishStatusRequest("emailQueue",
+                        SqsEmailMessageDTO.builder()
                                 .to(saved.getEmail())
                                 .subject("El estado de su solicitud de préstamo es " + status.getName())
                                 .body(String.format(
@@ -83,22 +100,21 @@ public class UpdateRequestsUseCase implements UpdateRequestsUseCaseInterface {
                                 ))
                                 .build()
                 )
+                .then(Mono.defer(() -> {
+                    if (status.getId() != null && status.getId().longValue() == 1L)  { // Si la solicitud cambia a aprobado
+                        logger.info("La solicitud fue aprobada, enviando a SQS para actualizar el reporte");
+                        return sqsUseCaseInterface.publishReportRequest( "reportQueue",
+                                SqsReportMessageDTO.builder()
+                                        .id("anyId")
+                                        .countToAdd(1L)
+                                        .totalAmountToAdd((double)saved.getAmount())
+                                        .build()
+                        );
+                    }
+                    logger.info("La solicitud no fue aprobada, por lo tanto no se suma al reporte");
+                    return Mono.empty();
+                }))
                 .doOnSuccess(v -> logger.info(String.format("Evento enviado a SQS para solicitud [%d]", saved.getId())))
                 .thenReturn(saved);
-    }
-
-    private Mono<Requests> validateUpdateRequests(Requests requests) {
-        if (requests.getStatusId() == null || requests.getLoanTypeId() == null) {
-            return Mono.error(new RequestsValidationException("Request structure is incomplete (status an loan type)."));
-        }
-
-        return Mono.zip(
-                statusRepository.findStatusById(requests.getStatusId()),
-                loanTypeRepository.findLoanTypeById(requests.getLoanTypeId())
-        ).map(tuple -> {
-            requests.setStatusName(tuple.getT1().getName());
-            requests.setLoanTypeName(tuple.getT2().getName());
-            return requests;
-        });
     }
 }

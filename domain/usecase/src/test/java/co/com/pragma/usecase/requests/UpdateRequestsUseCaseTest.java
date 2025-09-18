@@ -6,7 +6,8 @@ import co.com.pragma.model.requests.Requests;
 import co.com.pragma.model.requests.gateways.RequestsRepository;
 import co.com.pragma.model.status.Status;
 import co.com.pragma.model.status.gateways.StatusRepository;
-import co.com.pragma.usecase.requests.dto.SqsMessageDTO;
+import co.com.pragma.usecase.requests.dto.SqsEmailMessageDTO;
+import co.com.pragma.usecase.requests.dto.SqsReportMessageDTO;
 import co.com.pragma.usecase.requests.interfaces.SqsUseCaseInterface;
 import co.com.pragma.usecase.requests.validations.error.RequestsValidationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,7 +59,9 @@ class UpdateRequestsUseCaseTest {
                 .thenReturn(Mono.just(loanType));
         when(statusRepository.findStatusById(any()))
                 .thenReturn(Mono.just(status));
-        when(sqsUseCaseInterface.publishStatusRequest(any(SqsMessageDTO.class)))
+        when(sqsUseCaseInterface.publishStatusRequest(any(), any(SqsEmailMessageDTO.class)))
+                .thenReturn(Mono.empty());
+        when(sqsUseCaseInterface.publishReportRequest(any(), any(SqsReportMessageDTO.class)))
                 .thenReturn(Mono.empty());
         when(requestsRepository.saveRequests(requests, Boolean.TRUE))
                 .thenAnswer(invocation -> {
@@ -102,7 +105,7 @@ class UpdateRequestsUseCaseTest {
                 .thenReturn(Mono.just(loanType));
         when(statusRepository.findStatusById(any()))
                 .thenReturn(Mono.just(status));
-        when(sqsUseCaseInterface.publishStatusRequest(any(SqsMessageDTO.class)))
+        when(sqsUseCaseInterface.publishStatusRequest(any(), any(SqsEmailMessageDTO.class)))
                 .thenReturn(Mono.empty());
         when(requestsRepository.saveRequests(requests, Boolean.TRUE))
                 .thenAnswer(invocation -> {
