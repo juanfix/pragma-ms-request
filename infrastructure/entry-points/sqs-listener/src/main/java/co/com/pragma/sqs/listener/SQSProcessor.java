@@ -1,6 +1,5 @@
 package co.com.pragma.sqs.listener;
 
-import co.com.pragma.model.requests.Requests;
 import co.com.pragma.sqs.listener.dto.UpdateRequestsRequestDTO;
 import co.com.pragma.usecase.requests.UpdateRequestsUseCase;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +22,7 @@ public class SQSProcessor implements Function<Message, Mono<Void>> {
     public Mono<Void> apply(Message message) {
         ObjectMapper mapper = new ObjectMapper();
         try {
+            log.info("Se recibio un mensaje nuevo a la cola de SQS para actualizar la solicitud: {}", message.body());
             UpdateRequestsRequestDTO body = mapper.readValue(message.body().toString(), UpdateRequestsRequestDTO.class);
 
             return updateRequestsUseCase.execute(body.requestId(), body.newStatusId()).then();
