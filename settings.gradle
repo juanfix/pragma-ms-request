@@ -25,4 +25,12 @@ project(':reactive-web').projectDir = file('./infrastructure/entry-points/reacti
 include ':r2dbc-postgresql'
 project(':r2dbc-postgresql').projectDir = file('./infrastructure/driven-adapters/r2dbc-postgresql')
 include ':web-client'
-project(':web-client').projectDir = file('./infrastructure/helpers/web-client')
+project(':web-client').projectDir = file('./infrastructure/driven-adapters/web-client')
+include ':jjwt-security'
+project(':jjwt-security').projectDir = file('./infrastructure/driven-adapters/jjwt-security')
+include ':metrics'
+project(':metrics').projectDir = file('./infrastructure/helpers/metrics')
+include ':sqs-sender'
+project(':sqs-sender').projectDir = file('./infrastructure/driven-adapters/sqs-sender')
+include ':sqs-listener'
+project(':sqs-listener').projectDir = file('./infrastructure/entry-points/sqs-listener')

@@ -1,0 +1,14 @@
+dependencies {
+    implementation project(':model')
+    implementation project(':usecase')
+    implementation 'org.springframework:spring-context'
+    implementation "io.projectreactor:reactor-core"
+    implementation "org.springframework.boot:spring-boot-starter-webflux"
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation 'org.slf4j:slf4j-api:2.0.12'
+    implementation 'ch.qos.logback:logback-classic:1.5.13'
+    // https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-api
+    implementation("io.jsonwebtoken:jjwt-api:0.13.0")
+    implementation ('io.jsonwebtoken:jjwt-impl:0.13.0')
+    implementation ('io.jsonwebtoken:jjwt-jackson:0.13.0')
+}

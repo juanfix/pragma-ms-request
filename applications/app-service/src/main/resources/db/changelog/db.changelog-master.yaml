@@ -1,0 +1,218 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: juan
+      changes:
+        - createTable:
+            tableName: status
+            columns:
+              - column:
+                  name: id
+                  type: SERIAL
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+
+  - changeSet:
+      id: 2
+      author: juan
+      changes:
+        - createTable:
+            tableName: loan_type
+            columns:
+              - column:
+                  name: id
+                  type: SERIAL
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: min_amount
+                  type: BIGINT
+              - column:
+                  name: max_amount
+                  type: BIGINT
+              - column:
+                  name: interest_rate
+                  type: DECIMAL
+                  constraints:
+                    nullable: false
+              - column:
+                  name: automatic_validation
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+
+  - changeSet:
+      id: 3
+      author: juan
+      changes:
+        - createTable:
+            tableName: requests
+            columns:
+              - column:
+                  name: id
+                  type: SERIAL
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: amount
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: term
+                  type: SMALLINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+              - column:
+                  name: identity_number
+                  type: VARCHAR(255)
+              - column:
+                  name: status_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: loan_type_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: requests
+            baseColumnNames: status_id
+            constraintName: fk_requests_status
+            referencedTableName: status
+            referencedColumnNames: id
+        - addForeignKeyConstraint:
+            baseTableName: requests
+            baseColumnNames: loan_type_id
+            constraintName: fk_requests_loan_type
+            referencedTableName: loan_type
+            referencedColumnNames: id
+
+  - changeSet:
+      id: 4
+      author: juan
+      changes:
+        - createIndex:
+            tableName: requests
+            indexName: idx_requests_email
+            columns:
+              - column:
+                  name: email
+        - createIndex:
+            tableName: requests
+            indexName: idx_requests_identity_number
+            columns:
+              - column:
+                  name: identity_number
+
+  - changeSet:
+      id: 5
+      author: juan
+      changes:
+        - insert:
+            tableName: status
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 1
+              - column:
+                  name: name
+                  value: "Aceptado"
+              - column:
+                  name: description
+                  value: "Solicitud aprobada"
+        - insert:
+            tableName: status
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 2
+              - column:
+                  name: name
+                  value: "Rechazado"
+              - column:
+                  name: description
+                  value: "Solicitud rechazada"
+        - insert:
+            tableName: status
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 3
+              - column:
+                  name: name
+                  value: "En revisión"
+              - column:
+                  name: description
+                  value: "El sistema valida la información para decidir si se acepta o no el préstamo."
+        - insert:
+            tableName: status
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 4
+              - column:
+                  name: name
+                  value: "Pendiente de revisión"
+              - column:
+                  name: description
+                  value: "Se registra la solicitud en el sistema."
+
+  - changeSet:
+      id: 6
+      author: juan
+      changes:
+        - insert:
+            tableName: loan_type
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 1
+              - column:
+                  name: name
+                  value: "Libre inversión"
+              - column:
+                  name: min_amount
+                  valueNumeric: 300000
+              - column:
+                  name: max_amount
+                  valueNumeric: 20000000
+              - column:
+                  name: interest_rate
+                  valueNumeric: 12.2
+        - insert:
+            tableName: loan_type
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 2
+              - column:
+                  name: name
+                  value: "Hipotecario"
+              - column:
+                  name: min_amount
+                  valueNumeric: 15000000
+              - column:
+                  name: max_amount
+                  valueNumeric: 95000000
+              - column:
+                  name: interest_rate
+                  valueNumeric: 15.0

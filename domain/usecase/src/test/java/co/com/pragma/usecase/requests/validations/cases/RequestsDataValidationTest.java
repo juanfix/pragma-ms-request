@@ -1,6 +1,7 @@
 package co.com.pragma.usecase.requests.validations.cases;
 
 import co.com.pragma.model.requests.Requests;
+import co.com.pragma.usecase.requests.validations.error.RequestsValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
@@ -26,6 +27,19 @@ class RequestsDataValidationTest {
     }
 
     @Test
+    void shouldFailWhenIdentityNumberOrEmailIsNull() {
+        Requests requests = new Requests();
+        requests.setIdentityNumber("");
+        requests.setEmail("");
+        requests.setAmount(1000000L);
+        requests.setTerm(12);
+
+        StepVerifier.create(requestsDataValidation.validate(requests))
+                .expectError(RequestsValidationException.class)
+                .verify();
+    }
+
+    @Test
     void shouldFailWhenAmountIsNull() {
         Requests requests = new Requests();
         requests.setIdentityNumber("123");
@@ -34,7 +48,7 @@ class RequestsDataValidationTest {
         requests.setTerm(12);
 
         StepVerifier.create(requestsDataValidation.validate(requests))
-                .expectError(IllegalArgumentException.class)
+                .expectError(RequestsValidationException.class)
                 .verify();
     }
 
@@ -47,7 +61,7 @@ class RequestsDataValidationTest {
         requests.setTerm(null);
 
         StepVerifier.create(requestsDataValidation.validate(requests))
-                .expectError(IllegalArgumentException.class)
+                .expectError(RequestsValidationException.class)
                 .verify();
     }
 

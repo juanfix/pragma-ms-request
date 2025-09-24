@@ -1,6 +1,7 @@
 package co.com.pragma.usecase.requests.validations;
 
 import co.com.pragma.model.requests.Requests;
+import co.com.pragma.usecase.requests.validations.error.RequestsValidationException;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -29,14 +30,14 @@ class RequestsValidationTest {
         IRequestsValidation validationFail = mock(IRequestsValidation.class);
 
         when(validationSuccess.validate(any())).thenReturn(Mono.empty());
-        when(validationFail.validate(any())).thenReturn(Mono.error(new IllegalArgumentException("Any error message")));
+        when(validationFail.validate(any())).thenReturn(Mono.error(new RequestsValidationException("Any error message")));
 
         RequestsValidation requestsValidation = new RequestsValidation()
                 .includeValidation(validationSuccess)
                 .includeValidation(validationFail);
 
         StepVerifier.create(requestsValidation.validate(new Requests()))
-                .expectErrorMatches(throwable -> throwable instanceof IllegalArgumentException&&
+                .expectErrorMatches(throwable -> throwable instanceof RequestsValidationException &&
                         throwable.getMessage().equals("Any error message"))
                 .verify();
 

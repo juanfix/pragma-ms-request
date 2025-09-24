@@ -2,6 +2,7 @@ package co.com.pragma.usecase.requests.validations.cases;
 
 import co.com.pragma.model.requests.Requests;
 import co.com.pragma.model.requests.gateways.RequestsRepository;
+import co.com.pragma.usecase.requests.validations.error.RequestsValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
@@ -38,7 +39,7 @@ class AmountAndTermValidationTest {
         requests.setTerm(3);
 
         StepVerifier.create(amountAndTermValidation.validate(requests))
-                .expectErrorMatches(e -> e instanceof IllegalArgumentException &&
+                .expectErrorMatches(e -> e instanceof RequestsValidationException &&
                         e.getMessage().contains("The amount must be 1 or greater."))
                 .verify();
     }
@@ -50,7 +51,7 @@ class AmountAndTermValidationTest {
         requests.setTerm(-3);
 
         StepVerifier.create(amountAndTermValidation.validate(requests))
-                .expectErrorMatches(e -> e instanceof IllegalArgumentException &&
+                .expectErrorMatches(e -> e instanceof RequestsValidationException &&
                         e.getMessage().contains("The term must be 1 or greater."))
                 .verify();
     }
