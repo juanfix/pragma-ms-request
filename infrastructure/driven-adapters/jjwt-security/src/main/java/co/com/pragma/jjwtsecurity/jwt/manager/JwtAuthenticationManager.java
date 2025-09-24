@@ -23,9 +23,19 @@ public class JwtAuthenticationManager implements ReactiveAuthenticationManager {
 
     @Override
     public Mono<Authentication> authenticate(Authentication authentication) {
-        return Mono.just(authentication)
-                .map(auth -> jwtProvider.getClaims(auth.getCredentials().toString()))
-                .log()
+        if (authentication == null || authentication.getCredentials() == null) {
+            // No hay token → no autenticamos → Spring decidirá si la ruta es pública
+            return Mono.empty();
+        }
+
+        String token = authentication.getCredentials().toString();
+
+        if (token.isBlank()) {
+            return Mono.empty(); // también consideramos vacío como "no hay auth"
+        }
+
+        return Mono.just(token)
+                .map(jwtProvider::getClaims)
                 .onErrorResume(e -> Mono.error(new BadCredentialsException("Bad or malformed token", e)))
                 .map(claims -> {
                     String username = claims.getSubject();
