@@ -56,8 +56,8 @@ entrypoint:
     base-url: "${LAMBDA_DEBT_CAPACITY_BASE_URL:https://tdiveru7v8.execute-api.us-east-1.amazonaws.com}"
   sqs:
     region: "us-east-1"
-    # endpoint: "${SQS_SENDER_QUEUE_ENDPOINT:http://localhost:4566}"
-    queueUrl: "${SQS_SENDER_QUEUE_URL:https://sqs.us-east-1.amazonaws.com/225685253174/sqs_debt_capacity}"
+    # endpoint: "${SQS_LISTENER_QUEUE_ENDPOINT:http://localhost:4566}"
+    queueUrl: "${SQS_LISTENER_QUEUE_URL:https://sqs.us-east-1.amazonaws.com/225685253174/sqs_debt_capacity}"
     waitTimeSeconds: 20
     maxNumberOfMessages: 10
     visibilityTimeoutSeconds: 10

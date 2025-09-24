@@ -33,7 +33,8 @@ public class JwtFilter implements WebFilter {
                 || path.contains("/swagger-ui")
                 || path.contains("/api-docs")
                 || path.contains("/swagger-resources")
-        )&& method == HttpMethod.GET))
+                || path.contains("/actuator")
+        ) && method == HttpMethod.GET))
             return chain.filter(exchange);
         String auth = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
